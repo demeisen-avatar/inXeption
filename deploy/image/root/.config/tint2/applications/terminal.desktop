@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Terminal
+Comment=Improved Terminal Emulator
+Exec=/opt/inXeption/bin/kitty-terminal.sh
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;
+StartupNotify=true

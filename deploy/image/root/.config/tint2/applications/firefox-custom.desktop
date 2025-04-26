@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Firefox Browser
+Comment=Web Browser with persistent profile
+Exec=/usr/local/bin/launch_firefox -new-window
+Icon=firefox-esr
+Terminal=false
+Type=Application
+Categories=Network;WebBrowser;

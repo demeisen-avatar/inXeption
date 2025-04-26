@@ -1,0 +1,10 @@
+#!/bin/bash
+# Wrapper script to ensure Firefox always uses our persistent profile
+
+# Ensure profile directory exists
+PROFILE_DIR="/host/.persist/.firefox/default"
+mkdir -p "$PROFILE_DIR"
+
+# Launch Firefox with the persistent profile
+# $@ passes all arguments to Firefox
+DISPLAY=:1 firefox-esr -profile "$PROFILE_DIR" "$@"

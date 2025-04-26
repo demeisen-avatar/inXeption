@@ -1,0 +1,43 @@
+#!/usr/bin/pulseaudio -nF
+#
+# inXeption PulseAudio Configuration
+# =================================
+#
+# This file configures PulseAudio specifically for use with inXeption Docker containers.
+# It sets up:
+#   1. Network access for Docker containers to connect to the host's PulseAudio
+#   2. Audio routing priorities to ensure sound plays through physical speakers
+#
+# How it works:
+# - Loads the system default configuration
+# - Enables TCP connections from Docker containers
+# - Sets device priorities to prefer physical speakers over virtual devices like BlackHole
+#
+# This file is automatically loaded by run.sh when starting inXeption containers.
+# When the container exits, your original audio configuration is restored.
+
+# Include the default configuration from Homebrew
+.include /opt/homebrew/etc/pulse/default.pa
+
+# ===== Docker Connectivity =====
+# Enable TCP socket with anonymous authentication (for Docker)
+load-module module-native-protocol-tcp auth-anonymous=1
+
+# Allow connections from Docker network ranges
+load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;172.17.0.0/16
+
+# ===== Audio Device Routing =====
+# Load the device manager to support priority-based routing
+load-module module-device-manager
+
+# Priority system:
+# - Apple hardware (physical speakers) gets high priority (100)
+# - Virtual audio devices (like BlackHole) get low priority (-100)
+# This ensures sound goes to real speakers by default
+
+# Set priorities based on device vendor
+set-sink-priorities device.vendor.name="Apple Inc." 100
+set-sink-priorities device.vendor.name="Existential Audio Inc." -100
+
+# Fallback to prioritize devices with "speaker" in their name
+set-sink-priorities device.description="*[Ss]peaker*" 90

@@ -1,0 +1,9 @@
+[server]
+fileWatcherType = "auto"
+runOnSave = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "dark"

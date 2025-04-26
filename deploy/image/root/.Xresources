@@ -1,0 +1,2 @@
+! General X resources
+! Terminal-specific settings have been moved to ~/.config/kitty/kitty.conf

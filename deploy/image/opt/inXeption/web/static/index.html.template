@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>inXeption</title>
+        <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💫</text></svg>">
+        <meta name="permissions-policy" content="fullscreen=*" />
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            .container {
+                display: flex;
+                height: 100vh;
+                width: 100vw;
+                position: relative;
+            }
+            .left {
+                flex: 2;
+                border: none;
+                height: 100vh;
+                transition: flex 0.3s ease;
+            }
+            .right {
+                flex: 1;
+                border: none;
+                height: 100vh;
+                transition: flex 0.3s ease;
+            }
+            .button-container {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+            }
+            .button-container button {
+                margin-bottom: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <iframe
+                src="${STREAMLIT_URL}"
+                class="left"
+                allow="fullscreen"
+            ></iframe>
+            <iframe
+                id="vnc"
+                src="${NOVNC_URL}/vnc.html?&resize=scale&autoconnect=1&view_only=1&reconnect=1&reconnect_delay=2000"
+                class="right"
+                allow="fullscreen"
+            ></iframe>
+            <div class="button-container">
+                <button id="toggleFrames">Expand VM Display</button>
+                <button id="toggleViewOnly">Toggle Screen Control (Off)</button>
+            </div>
+            <script>
+                const leftFrame = document.querySelector(".left");
+                const rightFrame = document.querySelector(".right");
+                const toggleFramesButton =
+                    document.getElementById("toggleFrames");
+                const toggleViewOnlyButton =
+                    document.getElementById("toggleViewOnly");
+
+                let leftFrameCollapsed = true;
+
+                toggleFramesButton.addEventListener("click", () => {
+                    if (leftFrameCollapsed) {
+                        leftFrame.style.flex = "1";
+                        rightFrame.style.flex = "2";
+                        toggleFramesButton.innerText = "Expand Claude AI Chat";
+                    } else {
+                        leftFrame.style.flex = "2";
+                        rightFrame.style.flex = "1";
+                        toggleFramesButton.innerText = "Expand VM Display";
+                    }
+                    leftFrameCollapsed = !leftFrameCollapsed;
+                });
+
+                document
+                    .getElementById("toggleViewOnly")
+                    .addEventListener("click", function () {
+                        var vncIframe = document.getElementById("vnc");
+                        var button = document.getElementById("toggleViewOnly");
+                        var currentSrc = vncIframe.src;
+                        if (currentSrc.includes("view_only=1")) {
+                            vncIframe.src = currentSrc.replace(
+                                "view_only=1",
+                                "view_only=0",
+                            );
+                            button.innerText = "Toggle Screen Control (On)";
+                        } else {
+                            vncIframe.src = currentSrc.replace(
+                                "view_only=0",
+                                "view_only=1",
+                            );
+                            button.innerText = "Toggle Screen Control (Off)";
+                        }
+                    });
+            </script>
+        </div>
+    </body>
+</html>
