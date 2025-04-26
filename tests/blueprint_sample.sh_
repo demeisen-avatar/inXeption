@@ -1,0 +1,34 @@
+#!/bin/bash
+# This is a sample shell script with blueprints
+
+# Regular shell comment
+
+# 💙6.0 SHELL SCRIPT BLUEPRINT
+# This is a blueprint in a shell script that documents
+# architectural decisions related to shell scripts.
+# The blueprint pattern works with consecutive comment lines.
+
+echo "Hello World"
+
+# Another regular comment
+function sample_function() {
+    # Function comment
+    echo "This is a sample function"
+}
+
+# 💙6.1 SHELL SCRIPT IMPLEMENTATION NOTE
+# Shell script blueprints must:
+# 1. Start with a # comment
+# 2. Have 💙 immediately after the # with no spaces between
+# 3. All lines in the blueprint must be comments
+# 4. No non-comment lines can appear within the blueprint
+
+# This is not part of the blueprint above
+
+# Indented comments also work
+if [ true ]; then
+    # 💙6.2 INDENTED BLUEPRINT
+    # This blueprint is indented in the shell script
+    # but the extraction process should handle it correctly
+    echo "Indented code"
+fi

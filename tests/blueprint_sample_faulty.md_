@@ -1,0 +1,23 @@
+# Faulty Blueprint Test File
+
+This file contains blueprints with various problems to test validation.
+
+💙1.1 THIS IS A FAULTY BLUEPRINT
+This blueprint doesn't have a closing marker.
+This should fail validation with a missing 🖤 error.
+
+Some regular content here...
+
+💙2.2 NESTED BLUEPRINT
+This blueprint starts before the previous one is closed.
+This should also fail validation.
+
+Normal content continues...
+
+💙3.3 VALID BLUEPRINT
+This blueprint is correctly formatted
+and has a proper closing marker.
+🖤
+
+# Final section
+Regular markdown content.

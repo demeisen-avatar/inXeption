@@ -1,0 +1,7 @@
+{
+    "pythonPath": "/usr/bin/python3",
+    "extraPaths": [
+        "/host",
+        "/usr/local/lib/python3.11/dist-packages"
+    ]
+}

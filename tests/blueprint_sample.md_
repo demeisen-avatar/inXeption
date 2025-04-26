@@ -1,0 +1,26 @@
+# Test Blueprint in Markdown
+
+This is a test file to demonstrate extracting blueprints from markdown files.
+
+💙1.5 MARKDOWN ARCHITECTURE OVERVIEW
+This is a blueprint defined in a markdown file that documents
+high-level architectural concepts that span multiple components.
+
+The markdown format is particularly useful for system-level documentation
+that doesn't belong in any specific code file.
+🖤
+
+Regular markdown content continues here...
+
+## Another Section
+
+💙4.0 IMPLEMENTATION GUIDELINES
+These are implementation guidelines that developers should follow
+when extending the system:
+
+1. Follow the KISS principle
+2. Maintain clear separation of concerns
+3. Document architectural decisions with blueprints
+🖤
+
+Final content in the markdown file.

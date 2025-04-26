@@ -1,0 +1,59 @@
+files: ''
+default_stages: [pre-commit, pre-push]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.7
+    hooks:
+      - id: ruff
+        name: Run `ruff` to autofix lint errors
+        args: [--fix-only]
+      - id: ruff
+        name: Run `ruff` to lint code
+# Disable pyright due to excessive errors
+#  - repo: https://github.com/RobertCraigie/pyright-python
+#    rev: v1.1.384
+#    hooks:
+#      - id: pyright
+  # Custom hook that formats code with ruff while preserving triple single quotes
+  - repo: local
+    hooks:
+      - id: format-and-preserve-quotes
+        name: Format code and preserve triple single quotes
+        description: 'Runs ruff formatter while preserving triple single quotes in Python files'
+        entry: scripts/hooks/convert_quotes.sh
+        language: system
+        files: \.py$
+        types: [python]
+        stages: [pre-commit]
+
+  # Blueprint documentation validator
+  # - repo: local
+  #   hooks:
+  #     - id: blueprint-validator
+  #       name: Blueprint Documentation Validator
+  #       description: 'Validates blueprint documentation format and structure across the entire project'
+  #       entry: scripts/hooks/blueprint-validator.sh
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [pre-commit]
+  #       verbose: true
+
+  # Custom hook to display warnings for AI assistants
+  - repo: local
+    hooks:
+      - id: ai-warning
+        name: AI Warning Message
+        description: 'Displays a warning message for AI assistants not to make unauthorized code changes'
+        entry: scripts/hooks/ai-warning.sh
+        language: system
+        pass_filenames: false
+        # This hook will run after other hooks due to its position in the config
+        stages: [pre-commit]
+        always_run: true
+        verbose: true
