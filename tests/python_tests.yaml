@@ -1,0 +1,55 @@
+- name: basic_test
+  description: Simple output test with single line statement
+  code_blocks:
+    - |
+      print('Hello world!')
+  expectation: |
+    - Should output "Hello world!"
+    - Test verifies basic execution capability
+
+- name: multiline_test
+  description: Test multi-line code structure with indentation
+  code_blocks:
+    - |
+      for i in range(3):
+          print(i)
+  expectation: |
+    - Should output numbers 0, 1, 2 on separate lines
+    - Test verifies proper handling of indentation
+
+- name: continuity_test
+  description: Test state persistence between code blocks
+  code_blocks:
+    - |
+      x = 10
+      print(f'First block: x = {x}')
+    - |
+      x = x + 5
+      print(f'Second block: x = {x}')
+  expectation: |
+    - First block should output "First block: x = 10"
+    - Second block should output "Second block: x = 15"
+    - Test verifies state persistence between executions
+
+- name: split_line_test
+  description: Test line breaks in complex expressions (fixed issue)
+  code_blocks:
+    - |
+      print([ i**2
+          for i in range(3)]
+      )
+  expectation: |
+    - Should output [0, 1, 4]
+    - Test verifies our fix for line breaks in complex expressions
+
+- name: error_recovery_test
+  description: Test recovery from syntax errors between code blocks
+  code_blocks:
+    - |
+      i =
+    - |
+      print('ok')
+  expectation: |
+    - First block should raise a syntax error
+    - Second block should still execute and output "ok" if state is properly maintained
+    - Tests if errors in one block corrupt the Python process

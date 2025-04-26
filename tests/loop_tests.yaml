@@ -1,0 +1,148 @@
+- name: llm-response
+  description: Simple response without tools
+  user_messages:
+    - |
+      🧬 reply 'ok'
+  expectation: |
+    Single assistant response (thinking block + text block) followed by realistic usage-stats.
+    Message flow should be user → assistant.
+
+- name: bash-tool-use
+  description: Using bash tool to calculate sqrt
+  user_messages:
+    - |
+      🧬 use your bash tool to calc sqrt 101
+  expectation: |
+    - Assistant should use the bash tool to run bc and calculate the square root.
+    - Message flow should be user → assistant → user (tool result) → assistant.
+    - The final result should show 10.049... as the square root.
+    - total usage stats should be the sum of each interaction's usage stats.
+
+- name: llm-response-interrupt
+  description: Interrupt during LLM response
+  user_messages:
+    - |
+      🧬 [TEST MODE] This is a test of the LLM interrupt functionality.
+
+      Please write a detailed explanation of how Linux file permissions work, including regular permissions,
+      sticky bits, setuid, and setgid. Include examples of how to set each type of permission using chmod
+      with both octal and symbolic notation.
+
+      Note: This request is designed to be interrupted during your response generation.
+  interrupt_phase: llm
+  expectation: |
+    - Request should be interrupted during LLM response generation.
+    - Message flow should be user → assistant with interruption message.
+    - The assistant's message should contain "🛑 Response cancelled by user".
+
+- name: bash-tool-interrupt
+  description: Interrupt during bash tool execution
+  user_messages:
+    - |
+      🧬 [TEST MODE] This is a test of the tool interrupt functionality.
+
+      IMPORTANT: You MUST use the bash tool (not computer tool) for this test!
+
+      Run this command using your bash tool: for i in {1..30}; do echo "Counting $i"; sleep 1; done
+
+      This command is intended to be interrupted during execution to test error handling.
+  interrupt_phase: tool_execution
+  expectation: |
+    - Request should be interrupted during bash tool execution.
+    - Message flow should be user → assistant → user (partial tool result) → assistant.
+    - The final assistant message should contain "🛑 Tool execution interrupted by user".
+    - We should see final interaction stats
+
+- name: bash-tool-timeout
+  description: Timeout during bash tool execution
+  user_messages:
+    - |
+      🧬 [TEST MODE] This is a test of the bash tool timeout functionality.
+
+      IMPORTANT: You MUST use the bash tool (not computer tool) for this test!
+
+      Run the bash equiv of `for i in range(12) {echo tick $i ; sleep 1}` using your bash tool with a timeout_s of 10s
+
+      Yes it's gona fail (timeout) -- that's what we're TESTING!
+  expectation: |
+    - The bash tool should time out after approximately 10 seconds
+    - We should see the 'tick' outputs generated before the timeout
+    - Message flow should be user → assistant → user (tool result with timeout) → assistant
+    - The tool result should indicate a timeout occurred
+    - The assistant should acknowledge the timeout in its final response
+
+- name: two-messages
+  description: Test with two sequential messages
+  user_messages:
+    - |
+      🧬 reply "quux"
+    - |
+      🧬 What is the first user-message in your conversation history? (do NOT use a tool, just inspect and report back -- we're testing whether the conversation history is formed correctly).
+  expectation: |
+    - Two complete interactions with assistant responses.
+    - Message flow should be user → assistant → user → assistant.
+    - First response should contain "quux".
+    - Second response should indicate the first message was "reply \"quux\"".
+    - The usage stats should properly accumulate between interactions.
+
+- name: screenshot-test
+  description: Test computer tool screenshot functionality
+  user_messages:
+    - |
+      🧬 Take a screenshot and describe the icons in the bottom right of the desktop.
+  expectation: |
+    - Assistant should use the computer tool to take a screenshot.
+    - Message flow should be user → assistant → user (tool result with image) → assistant.
+    - The assistant's final response should detail icons in the tray:
+    spreadsheet, terminal, firefox, xpaint, pdf, gedit, and calculator.
+    - The test should verify that base64 image data is properly stripped from YAML logs.
+
+- name: tool-error-test
+  description: Test whether tool-error is handled correctly
+  user_messages:
+    - |
+      🧬 We wish to test whether your agent-system can recover from tool errors. Invoke 'nonexistent_tool' tool with no args. I know you don't have that tool. That's the point. We want to check that it doesn't crash the agent-system. Then describe the tool-result you see.
+      🧬 Now invoke your edit tool to create a file, but deliberately omit the filename, so as to provoke another error. Again, describe the tool-result you see.
+      🧬 reply 'ok'
+  expectation: |
+    - We should be seeing evidence the agent can see the tool-results from the first 2 cycles (both should be errors)
+    - Last assistant response should be 'ok', which will show that a tool-error doesn't disrupt the session
+
+- name: edit-fail
+  description: Testing edit tool error when accessing non-existent file and conversation history maintenance
+  user_messages:
+    - |
+      🧬 Use your edit tool to examine /tmp/nonexisting_file.txt and report back
+    - |
+      🧬 Summarize the conversation thus far
+  expectation: |
+    - Assistant should attempt to use the edit tool to view a non-existent file
+    - The system should handle the error gracefully
+    - Message flow should be user → assistant → user (error) → assistant → user → assistant
+    - The assistant should acknowledge the file does not exist in its first response
+    - The second response should correctly summarize the previous interaction, including the error
+    - This tests whether conversation history is maintained after an error occurs
+
+- name: python-test
+  description: Test Python tool state persistence between turns
+  user_messages:
+    - |
+      🧬 Use your python tool to create a function that sums the first N prime numbers. Then in a separate turn, use it with N = 10
+  expectation: |
+    - Assistant should use the python tool to define a function for summing prime numbers
+    - In a second turn, it should use the previously defined function with N=10
+    - Message flow should be user → assistant → user (tool result) → assistant → user (tool result) → assistant
+    - The tool should maintain state between turns (the function definition persists)
+    - The final result should show the correct sum of the first 10 prime numbers
+
+- name: browser-automation-test
+  description: Test browser automation with the Python tool
+  user_messages:
+    - |
+      🧬 [TEST MODE] Use your python_tool to demonstrate browser automation. Import get_browser from agent_tools.browser_automation, create a browser instance, navigate to example.com, and retrieve the page title and h1 text.
+  expectation: |
+    - Assistant should use the python_tool to import get_browser from agent_tools.browser_automation
+    - The code should successfully launch a Firefox browser, navigate to example.com, and retrieve content
+    - Message flow should be user → assistant → user (tool result) → assistant
+    - The tool result should show successful import, browser initialization, and page content retrieval
+    - The result should include the title "Example Domain" and H1 text from the page
