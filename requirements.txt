@@ -15,3 +15,5 @@ ruamel.yaml
 psutil
 httpx
 pexpect
+docker
+arrow

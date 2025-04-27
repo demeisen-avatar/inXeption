@@ -236,13 +236,6 @@ else
         --hostname="L$((LX + 1))" \
         -v "$PROJROOT":/host \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -p 0.0.0.0:${PORT_VNC_EXTERNAL}:${PORT_VNC_INTERNAL} \
-        -p 0.0.0.0:${PORT_STREAMLIT_EXTERNAL}:${PORT_STREAMLIT_INTERNAL} \
-        -p 0.0.0.0:${PORT_NOVNC_EXTERNAL}:${PORT_NOVNC_INTERNAL} \
-        -p 0.0.0.0:${PORT_HTTP_EXTERNAL}:${PORT_HTTP_INTERNAL} \
-        -p 0.0.0.0:${PORT_MATRIX_ELEMENT_EXTERNAL}:${PORT_MATRIX_ELEMENT_INTERNAL} \
-        -p 0.0.0.0:${PORT_MATRIX_SYNAPSE_EXTERNAL}:${PORT_MATRIX_SYNAPSE_INTERNAL} \
-        -p 0.0.0.0:${PORT_DEV_STREAMLIT_EXTERNAL}:${PORT_DEV_STREAMLIT_INTERNAL} \
         --name "$CONTAINER_NAME" \
         -it "$IMAGE_NAME")
 fi

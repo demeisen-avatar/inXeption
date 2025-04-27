@@ -196,14 +196,89 @@ def monkeypatch():
 
 monkeypatch()
 
-# Display a banner in the UI
+# Display a banner in the UI with detailed container information
 # Get current directory and determine if this is a development or production run
 is_dev = __file__.startswith('/host/')
 env_type = 'DEVELOPMENT' if is_dev else 'PRODUCTION'
 
-st.write(
-    f'[wrapper] Running in {env_type} mode, run_counter={st.session_state.run_counter}'
-)
+# Import modules for container information display
+import arrow
+import docker
+import yaml
+
+try:
+    # Connect to Docker socket
+    client = docker.from_env()
+    hostname = os.environ['HOSTNAME']
+
+    # Find our container by hostname
+    containers = client.containers.list()
+    our_container = next(
+        c for c in containers if c.attrs['Config']['Hostname'] == hostname
+    )
+
+    # Get container details
+    container_info = our_container.attrs
+
+    # Extract time information
+    created = arrow.get(container_info['Created'])
+    started = arrow.get(container_info['State']['StartedAt'])
+    now = arrow.utcnow()
+
+    # Calculate uptime/runtime
+    uptime_delta = now - created
+    runtime_delta = now - started
+
+    # Format as readable strings
+    def format_timedelta(td):
+        return f'{td.days}d {td.seconds//3600}h {(td.seconds//60)%60}m'
+
+    uptime_str = format_timedelta(uptime_delta)
+    runtime_str = format_timedelta(runtime_delta)
+
+    # Extract network information
+    network_info = {
+        name: {'ip': net['IPAddress'], 'gateway': net['Gateway']}
+        for name, net in container_info['NetworkSettings']['Networks'].items()
+    }
+
+    # Get environment variables from container config
+    env_vars = {
+        env.split('=')[0]: env.split('=')[1]
+        for env in container_info['Config']['Env']
+        if '=' in env
+    }
+
+    # Build container information structure
+    container_details = {
+        'container': {
+            'id': our_container.id[:12],
+            'name': our_container.name,
+            'assigned_name': env_vars.get('CONTAINER_NAME', 'unknown'),
+            'hostname': hostname,
+            'lx_level': os.environ['LX'],
+            'mode': env_type,
+            'run_counter': st.session_state.run_counter,
+            'image': {
+                'id': container_info['Image'][:12],
+                'name': container_info['Config']['Image'],
+            },
+            'uptime': uptime_str,
+            'runtime': runtime_str,
+            'state': container_info['State']['Status'],
+            'network': network_info,
+        }
+    }
+
+    # Display as YAML code block
+    st.code(yaml.dump(container_details, default_flow_style=False), language='yaml')
+
+except Exception as e:
+    # Fall back to simple message if container info retrieval fails
+    logger.error(f'Failed to retrieve container information: {e}')
+    st.write(
+        f'[wrapper] Running in {env_type} mode, run_counter={st.session_state.run_counter}'
+    )
 
 # Add path to sys.path if not already there
 current_dir = os.path.dirname(os.path.abspath(__file__))
