@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Firefox Browser
 Comment=Web Browser with persistent profile
-Exec=/usr/local/bin/launch_firefox -new-window
+Exec=/usr/local/bin/launch_firefox --browser
 Icon=firefox-esr
 Terminal=false
 Type=Application
