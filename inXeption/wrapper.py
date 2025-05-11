@@ -146,16 +146,7 @@ def monkeypatch():
     # Capture the script context at module level when script first loads
     SCRIPT_RUN_CTX = get_script_run_ctx()
 
-    if SCRIPT_RUN_CTX is not None:
-        logger.info(
-            f'Captured initial ScriptRunContext session_id: {SCRIPT_RUN_CTX.session_id}',
-            extra={'run_index': st.session_state.run_counter},
-        )
-    else:
-        logger.warning(
-            'ScriptRunContext is None - this may cause issues with stop button detection',
-            extra={'run_index': st.session_state.run_counter},
-        )
+    assert SCRIPT_RUN_CTX is not None
 
     # Store the original handler
     original_stop_handler = AppSession._handle_stop_script_request  # noqa: F841
@@ -249,6 +240,9 @@ try:
         if '=' in env
     }
 
+    # Get session ID if available
+    session_id_display = get_script_run_ctx().session_id[:6] + '...'  # noqa F821
+
     # Build container information structure
     container_details = {
         'container': {
@@ -258,7 +252,6 @@ try:
             'hostname': hostname,
             'lx_level': os.environ['LX'],
             'mode': env_type,
-            'run_counter': st.session_state.run_counter,
             'image': {
                 'id': container_info['Image'][:12],
                 'name': container_info['Config']['Image'],
@@ -267,7 +260,9 @@ try:
             'runtime': runtime_str,
             'state': container_info['State']['Status'],
             'network': network_info,
-        }
+        },
+        'streamlit_session_id': session_id_display,
+        'run_counter': st.session_state.run_counter
     }
 
     # Display as YAML code block
@@ -276,6 +271,7 @@ try:
 except Exception as e:
     # Fall back to simple message if container info retrieval fails
     logger.error(f'Failed to retrieve container information: {e}')
+    logger.error(f'Traceback: {traceback.format_exc()}')
     st.write(
         f'[wrapper] Running in {env_type} mode, run_counter={st.session_state.run_counter}'
     )
