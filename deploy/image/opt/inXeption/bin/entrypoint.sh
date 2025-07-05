@@ -37,6 +37,10 @@ setup_git() {
 
 setup_git
 
+# Start SSH server
+service ssh start
+echo "SSH server started on port 22"
+
 # Set up Gemini CLI persistent authentication
 if [ ! -L /root/.gemini ]; then
   # Remove any existing .gemini directory

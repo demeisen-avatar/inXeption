@@ -126,6 +126,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     npm install -g npm@latest && \
     npm install -g @google/gemini-cli
 
+# Install OpenSSH server
+RUN apt-get update && apt-get install -y openssh-server && \
+    mkdir -p /var/run/sshd && \
+    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config && \
+    echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && \
+    echo 'root:password' | chpasswd
+
 # Create symlink so the default 'firefox' command uses our launcher script
 RUN ln -sf /usr/local/bin/launch_firefox /usr/bin/firefox
 
