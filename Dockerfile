@@ -120,6 +120,15 @@ RUN apt-get update && \
     unzip && \
     apt-get clean
 
+# Install Node.js 20+ and npm 11+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm@latest && \
+    npm install -g @google/gemini-cli
+
+# Create symlink so the default 'firefox' command uses our launcher script
+RUN ln -sf /usr/local/bin/launch_firefox /usr/bin/firefox
+
 # Install and configure noVNC
 RUN git clone --branch v1.5.0 https://github.com/novnc/noVNC.git /opt/noVNC && \
     git clone --branch v0.12.0 https://github.com/novnc/websockify /opt/noVNC/utils/websockify && \

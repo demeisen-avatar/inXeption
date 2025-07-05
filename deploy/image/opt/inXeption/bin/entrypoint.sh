@@ -37,6 +37,15 @@ setup_git() {
 
 setup_git
 
+# Set up Gemini CLI persistent authentication
+if [ ! -L /root/.gemini ]; then
+  # Remove any existing .gemini directory
+  rm -rf /root/.gemini
+  # Create symbolic link to persistent storage
+  ln -sf /host/.persist/.gemini /root/.gemini
+  echo "Set up Gemini CLI persistent authentication"
+fi
+
 # Source and export all variables from .ports
 set -a
 source /host/.ports || exit 1
