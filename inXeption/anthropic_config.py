@@ -4,12 +4,12 @@ Anthropic Model Configuration
 This file contains all Anthropic-specific constants that may need updating
 when new models are released or APIs are modified.
 
-Last updated: 2025-02-26
-Compatible with: Claude 3.7 Sonnet (2025-02-19)
+Last updated: 2025-07-13
+Compatible with: Claude 4.0 Opus (2025-05-14)
 '''
 
 # Model Identifier - the model we're using
-MODEL = 'claude-3-7-sonnet-20250219'  # Latest model
+MODEL = 'claude-opus-4-20250514'  # Claude 4.0 Opus
 
 # HTTP Headers
 REQUIRED_HEADERS = {
@@ -27,8 +27,10 @@ BETA_FLAGS = {
 
 # Model Constraints
 MODEL_CONSTRAINTS = {
-    'max_input_tokens': 200_000,  # Maximum context window size
-    'max_output_tokens': 128_000,  # Maximum tokens to generate per response (Claude 3.7)
+    'max_input_tokens': 200_000,  # Maximum context window size (same for Claude 3.7 and 4.0)
+    'max_output_tokens': 32_000,  # Maximum tokens to generate per response (Claude 4.0 Opus)
+    # Note: Claude 4.0 Sonnet supports 64,000 max output tokens
+    # Note: Claude 3.7 Sonnet supported 128,000 max output tokens
     'default_output_tokens': 16_384,  # Default reasonable output size
 }
 
@@ -41,7 +43,7 @@ RATE_LIMITS = {
 }
 
 # Token Pricing (USD per million tokens)
-BASE_RATE = 3.0
+BASE_RATE = 15.0  # Claude 4.0 Opus is 5x more expensive than Claude 3.7 Sonnet
 
 TOKEN_PRICING_USD_PER_MILLION = {
     'input_tokens': BASE_RATE * 1.0,  # Base rate for fresh input

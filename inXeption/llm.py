@@ -39,6 +39,7 @@ class ResponseOutcome(str, Enum):
     HTTP_ERROR = 'http_error'
     EXCEPTION = 'exception'
     INTERRUPTED = 'interrupted'
+    REFUSAL = 'refusal'  # Claude 4.0 safety refusal
 
 
 async def query_llm_api(
@@ -118,6 +119,11 @@ async def query_llm_api(
                 outcome = ResponseOutcome.TOOL_USE
             elif response_data['stop_reason'] == 'end_turn':
                 outcome = ResponseOutcome.END_TURN
+            elif response_data['stop_reason'] == 'refusal':
+                outcome = ResponseOutcome.REFUSAL
+                logger.warning(
+                    f'Model refused to generate content: {response_data.get("stop_sequence", "No stop sequence provided")}'
+                )
             else:
                 outcome = ResponseOutcome.UNEXPECTED_STOP
                 logger.warning(
