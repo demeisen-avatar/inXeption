@@ -221,20 +221,26 @@ def render_ui_element(ui_element):
                 block_type = block.type
                 content = block.content
 
-            if block_type == 'code' or block_type == UIBlockType.CODE:
+            # Clean up type checking and handle user messages differently
+            if block_type in ('code', UIBlockType.CODE):
                 st.code(content, wrap_lines=True)
-            elif block_type == 'markdown' or block_type == UIBlockType.MARKDOWN:
+            elif block_type in ('text', UIBlockType.TEXT):
+                if chat_type == UIChatType.USER:
+                    # Render user messages as code blocks to preserve formatting
+                    st.code(content, language=None, wrap_lines=True)
+                else:
+                    # Keep existing behavior for other text blocks
+                    st.markdown(content)
+            elif block_type in ('markdown', UIBlockType.MARKDOWN):
                 st.markdown(content)
-            elif block_type == 'text' or block_type == UIBlockType.TEXT:
-                st.markdown(content)
-            elif block_type == 'error' or block_type == UIBlockType.ERROR:
+            elif block_type in ('error', UIBlockType.ERROR):
                 # Use code block with backticks to prevent markdown rendering
                 st.error(f'```\n{content}\n```')
-            elif block_type == 'warning' or block_type == UIBlockType.WARNING:
+            elif block_type in ('warning', UIBlockType.WARNING):
                 st.warning(content)
-            elif block_type == 'info' or block_type == UIBlockType.INFO:
+            elif block_type in ('info', UIBlockType.INFO):
                 st.info(content)
-            elif block_type == 'image' or block_type == UIBlockType.IMAGE:
+            elif block_type in ('image', UIBlockType.IMAGE):
                 # Decode base64 data before passing to st.image()
                 st.image(b64decode(content))
             else:
