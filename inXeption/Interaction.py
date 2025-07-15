@@ -166,6 +166,7 @@ class Interaction(BaseModel):
                 tools=tools_schema,
                 previous_interactions=previous_interactions_objects,
                 current_interaction=self,
+                render_fn=render_fn,
             )
 
             # Generate and render stats UI element

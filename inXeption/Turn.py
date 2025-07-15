@@ -96,6 +96,7 @@ class Turn(BaseModel):
             previous_interactions=previous_interactions,
             current_interaction=current_interaction,
             interrupt_check=interrupt_check,
+            render_fn=render_fn,
         )
 
         # Render the response

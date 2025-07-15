@@ -95,11 +95,15 @@ def format_stats_lines(interaction, prev_battery=100.0):
         )
 
     # Add battery indicator with accurate delta
-    battery_emoji = '🪫' if interaction.final_battery < 20 else '🔋'
-    delta = interaction.final_battery - prev_battery
-    all_lines.append(
-        (battery_emoji, f'{delta:+.1f}%', f'{interaction.final_battery:.1f}%')
-    )
+    if interaction.final_battery == -1:
+        # Handle token counting failure case
+        all_lines.append(('🔋', '❌', '❌'))
+    else:
+        battery_emoji = '🪫' if interaction.final_battery < 20 else '🔋'
+        delta = interaction.final_battery - prev_battery
+        all_lines.append(
+            (battery_emoji, f'{delta:+.1f}%', f'{interaction.final_battery:.1f}%')
+        )
 
     return all_lines
 

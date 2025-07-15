@@ -135,12 +135,14 @@ class LLMResponse(BaseModel):
         tools,
         previous_interactions,
         current_interaction,
+        render_fn,
     ):
         '''
         Calculate battery percentage without actually calling the LLM API.
 
         Returns:
-            Battery percentage based on token count relative to max input tokens
+            Battery percentage based on token count relative to max input tokens,
+            or -1 if token counting failed
         '''
         # Build messages for token counting
         messages = build_messages(
@@ -151,7 +153,13 @@ class LLMResponse(BaseModel):
         )
 
         # Calculate token count and battery percentage
-        current_token_count = await count_tokens(prompts, tools, messages)
+        current_token_count = await count_tokens(prompts, tools, messages, render_fn)
+
+        # If token counting failed (signaled by -1), return -1 to indicate failure
+        if current_token_count == -1:
+            return -1
+
+        # Normal calculation if token counting succeeded
         max_tokens = MODEL_CONSTRAINTS['max_input_tokens']
         return 100 - (current_token_count / max_tokens * 100)
 
@@ -162,6 +170,7 @@ class LLMResponse(BaseModel):
         previous_interactions,
         current_interaction,
         interrupt_check,
+        render_fn,
     ):
         '''
         Query the LLM API with consistent error handling and interruption support.
@@ -177,7 +186,7 @@ class LLMResponse(BaseModel):
 
         # Calculate battery for message preparation
         battery_pct = await self.calculate_battery(
-            prompts, tools, previous_interactions, current_interaction
+            prompts, tools, previous_interactions, current_interaction, render_fn
         )
 
         # Prepare messages with battery information interpolated
@@ -210,14 +219,16 @@ class LLMResponse(BaseModel):
             last_content[-2]['cache_control'] = {'type': 'ephemeral'}
 
             # Create battery status text
-            battery_emoji = '🪫' if battery_pct < 20 else '🔋'
-            battery_text = f'⚠️ SYSTEM NOTICE: {battery_emoji} {battery_pct:.0f}%'
+            if battery_pct == -1:
+                # Special case for token counting failure
+                battery_text = '⚠️ SYSTEM NOTICE: ❌ Token counting failed'
+            else:
+                battery_emoji = '🪫' if battery_pct < 20 else '🔋'
+                battery_text = f'⚠️ SYSTEM NOTICE: {battery_emoji} {battery_pct:.0f}%'
 
-            # Extra warning for low battery
-            if battery_pct < 20:
-                battery_text += (
-                    '\n⚠️ BATTERY LOW! Wrap up your current task for a clean handoff.'
-                )
+                # Extra warning for low battery
+                if battery_pct < 20:
+                    battery_text += '\n⚠️ BATTERY LOW! Wrap up your current task for a clean handoff.'
 
             # Interpolate battery information in all content blocks
             for i, block in enumerate(last_content):

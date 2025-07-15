@@ -277,7 +277,7 @@ def _prepare_headers():
     return headers
 
 
-async def count_tokens(prompts, tools, messages):
+async def count_tokens(prompts, tools, messages, render_fn):
     '''Count tokens accurately using Anthropic API'''
     async with httpx.AsyncClient(timeout=10) as client:
         # strip thinking tokens
@@ -319,24 +319,25 @@ async def count_tokens(prompts, tools, messages):
             'anthropic-version': REQUIRED_HEADERS['anthropic-version'],
         }
 
-        def log_error(request_data, response_data):
-            # Log the failed request and response
+        def log_error(request_data, error_data):
+            # Log the failed request and error
             log_timestamp = timestamp()
             req_file = f'/tmp/token_count_request_{log_timestamp}.yaml'
-            resp_file = f'/tmp/token_count_response_{log_timestamp}.yaml'
+            err_file = f'/tmp/token_count_error_{log_timestamp}.yaml'
 
             with open(req_file, 'w') as f:
                 f.write(dump_str(request_data))
 
-            with open(resp_file, 'w') as f:
-                f.write(dump_str(response_data))
+            with open(err_file, 'w') as f:
+                f.write(dump_str(error_data))
 
-            logger.error(
-                f'Token counting request failed with status {response.status_code}'
-            )
-            logger.error(
-                f'Debug info: request at {req_file}, response/error at {resp_file}'
-            )
+            # Use error details from the error_data instead of referencing response
+            error_summary = error_data.get('status_code', 'Unknown status')
+            if 'exception' in error_data:
+                error_summary = f"Exception: {error_data['exception']}"
+
+            logger.error(f'Token counting request failed: {error_summary}')
+            logger.error(f'Debug info: request at {req_file}, error at {err_file}')
 
         try:
             response = await client.post(
@@ -372,7 +373,20 @@ async def count_tokens(prompts, tools, messages):
             error_data = {'exception': str(e), 'traceback': traceback.format_exc()}
 
             log_error(request_data, error_data)
-            return 0
+
+            # Show UI notification of the error
+            from inXeption.UIObjects import UIBlockType, UIChatType, UIElement
+
+            error_message = f'⚠️ Token counting failed: {str(e)}'
+
+            ui_element = UIElement.singleblock(
+                '⚠️', UIChatType.SYSTEM, UIBlockType.ERROR, error_message
+            )
+
+            render_fn(ui_element)
+
+            # Return -1 to signal token counting failure
+            return -1
 
         # Return input tokens count - let error propagate if not present
         return result['input_tokens']
