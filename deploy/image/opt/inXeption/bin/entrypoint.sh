@@ -80,6 +80,8 @@ cd /opt/inXeption/web
 envsubst < static/index.html.template > /var/www/html/index.html
 
 export PYTHONPYCACHEPREFIX=/tmp
+# Suppress Firefox remote settings warnings
+export MOZ_REMOTE_SETTINGS_DEVTOOLS=1
 
 cd /opt/inXeption/lib
 python http_server.py > "$LOG_BASE/system/server_logs.txt" 2>&1 &
