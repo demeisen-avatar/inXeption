@@ -262,7 +262,12 @@ try:
             'network': network_info,
         },
         'streamlit_session_id': session_id_display,
-        'run_counter': st.session_state.run_counter
+        'run_counter': st.session_state.run_counter,
+        'script_path': {
+            'wrapper': os.path.abspath(__file__),
+            'working_dir': os.getcwd(),
+            'script_dir': os.path.dirname(os.path.abspath(__file__)),
+        },
     }
 
     # Display as YAML code block
@@ -270,8 +275,16 @@ try:
 
 except Exception as e:
     # Fall back to simple message if container info retrieval fails
-    logger.error(f'Failed to retrieve container information: {e}')
-    logger.error(f'Traceback: {traceback.format_exc()}')
+    error_msg = f'Failed to retrieve container information: {e}'
+    stack_trace = traceback.format_exc()
+
+    # Log the error
+    logger.error(error_msg)
+    logger.error(f'Traceback: {stack_trace}')
+
+    # Show error to user
+    st.error(error_msg)
+    st.code(stack_trace, language='python')
     st.write(
         f'[wrapper] Running in {env_type} mode, run_counter={st.session_state.run_counter}'
     )
