@@ -27,32 +27,72 @@ def format_stats_lines(interaction, prev_battery=100.0):
     '''Format stats into lines for display'''
     all_lines = []
 
-    # Add token usage data with a list comprehension
-    token_types = [
-        'input_tokens',
-        'output_tokens',
-        'cache_creation_input_tokens',
-        'cache_read_input_tokens',
-    ]
-    all_lines.extend(
-        [
-            (
-                EMOJI_FOR_TOKEN_TYPE[token_type],
-                f'+{format_number(getattr(interaction.usage, token_type))}',
-                f'{format_number(getattr(interaction.total_usage, token_type))}',
-            )
-            for token_type in token_types
-        ]
+    # Check if we have per-model usage (new format) or just combined usage (old format)
+    has_per_model = hasattr(interaction, 'sonnet_usage') and hasattr(
+        interaction, 'opus_usage'
     )
 
-    # Add cost
-    all_lines.append(
-        (
-            '💰',
-            f'+${interaction.usage.dollar_cost:.2f}',
-            f'${interaction.total_usage.dollar_cost:.2f}',
+    if has_per_model:
+        # Add token usage data with both sonnet and opus columns
+        token_types = [
+            'input_tokens',
+            'output_tokens',
+            'cache_creation_input_tokens',
+            'cache_read_input_tokens',
+        ]
+
+        for token_type in token_types:
+            sonnet_val = getattr(interaction.sonnet_usage, token_type, 0)
+            opus_val = getattr(interaction.opus_usage, token_type, 0)
+            total_sonnet = getattr(interaction.total_sonnet_usage, token_type, 0)
+            total_opus = getattr(interaction.total_opus_usage, token_type, 0)
+
+            # Format: emoji [+sonnet, +opus] [total_sonnet, total_opus]
+            delta_str = f'[+{format_number(sonnet_val)}, +{format_number(opus_val)}]'
+            total_str = f'[{format_number(total_sonnet)}, {format_number(total_opus)}]'
+
+            all_lines.append((EMOJI_FOR_TOKEN_TYPE[token_type], delta_str, total_str))
+
+        # Add cost line with combined format
+        sonnet_cost = interaction.sonnet_usage.dollar_cost
+        opus_cost = interaction.opus_usage.dollar_cost
+        total_sonnet_cost = interaction.total_sonnet_usage.dollar_cost
+        total_opus_cost = interaction.total_opus_usage.dollar_cost
+        total_cost = interaction.total_usage.dollar_cost
+
+        delta_cost_str = f'[+${sonnet_cost:.2f}, +${opus_cost:.2f}]'
+        total_cost_str = (
+            f'[${total_sonnet_cost:.2f}, ${total_opus_cost:.2f}]  ${total_cost:.2f}'
         )
-    )
+        all_lines.append(('💰', delta_cost_str, total_cost_str))
+
+    else:
+        # Old format for backward compatibility
+        token_types = [
+            'input_tokens',
+            'output_tokens',
+            'cache_creation_input_tokens',
+            'cache_read_input_tokens',
+        ]
+        all_lines.extend(
+            [
+                (
+                    EMOJI_FOR_TOKEN_TYPE[token_type],
+                    f'+{format_number(getattr(interaction.usage, token_type))}',
+                    f'{format_number(getattr(interaction.total_usage, token_type))}',
+                )
+                for token_type in token_types
+            ]
+        )
+
+        # Add cost
+        all_lines.append(
+            (
+                '💰',
+                f'+${interaction.usage.dollar_cost:.2f}',
+                f'${interaction.total_usage.dollar_cost:.2f}',
+            )
+        )
 
     # Add battery indicator with accurate delta
     battery_emoji = '🪫' if interaction.final_battery < 20 else '🔋'

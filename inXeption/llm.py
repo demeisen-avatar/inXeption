@@ -13,10 +13,11 @@ from enum import Enum
 
 import httpx
 
+from inXeption import anthropic_config
 from inXeption.anthropic_config import (
     BETA_FLAGS,
-    MODEL,
     MODEL_CONSTRAINTS,
+    MODELS,
     REQUIRED_HEADERS,
 )
 from inXeption.utils.misc import timestamp
@@ -64,6 +65,9 @@ async def query_llm_api(
     CONTRACT: Takes prepared messages, returns standardized dict even under any failure
     '''
 
+    # Capture model being used before potential state change
+    model_used = 'opus' if 'opus' in anthropic_config.state else 'sonnet'
+
     # Prepare request
     api_url = 'https://api.anthropic.com/v1/messages'
     request_body = _prepare_request_body(messages, prompts, tools)
@@ -92,6 +96,7 @@ async def query_llm_api(
                 'content_blocks': [
                     {'type': 'text', 'text': '🛑 Response cancelled by user'}
                 ],
+                'model_used': model_used,
             }
 
             return result
@@ -134,7 +139,12 @@ async def query_llm_api(
                 'outcome': outcome,
                 'usage': usage_dict,
                 'content_blocks': content_blocks,
+                'model_used': model_used,
             }
+
+            # Reset state if it was opus-for-one-cycle
+            if anthropic_config.state == 'opus-for-one-cycle':
+                anthropic_config.state = 'sonnet'
 
             return result
 
@@ -167,6 +177,7 @@ async def query_llm_api(
                     'text': f'⚠️ HTTP Error ({e.response.status_code}):\n{dump_str(error_data)}',
                 }
             ],
+            'model_used': model_used,
         }
 
         return result
@@ -189,6 +200,7 @@ async def query_llm_api(
                     'text': f'⚠️ Exception during API call:\n{dump_str(error_data)}',
                 }
             ],
+            'model_used': model_used,
         }
 
         return result
@@ -227,8 +239,11 @@ async def _core_api_call(
 
 def _prepare_request_body(messages, prompts, tools):
     '''Prepare the request body for the API call'''
+    # Select model based on current state
+    model = MODELS['opus' if 'opus' in anthropic_config.state else 'sonnet']
+
     request_body = {
-        'model': MODEL,
+        'model': model,
         'max_tokens': MODEL_CONSTRAINTS['default_output_tokens'],
         'messages': messages,
         'thinking': {'type': 'enabled', 'budget_tokens': 4096},
@@ -289,8 +304,9 @@ async def count_tokens(prompts, tools, messages):
             )
 
         # Prepare request body
+        model = MODELS['opus' if 'opus' in anthropic_config.state else 'sonnet']
         request_body = {
-            'model': MODEL,
+            'model': model,
             'system': [{'type': 'text', 'text': prompts['system']}],
             'tools': tools,
             'messages': sanitized_messages,

@@ -326,4 +326,5 @@ class LLMResponse(BaseModel):
     @property
     def usage(self):
         '''Get usage data as a Usage object'''
-        return Usage.from_dict(self.response.get('usage', {}))
+        model_used = self.response.get('model_used', 'sonnet')
+        return Usage.from_dict(self.response.get('usage', {}), model=model_used)

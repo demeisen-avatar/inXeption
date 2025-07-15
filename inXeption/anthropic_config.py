@@ -8,8 +8,17 @@ Last updated: 2025-07-13
 Compatible with: Claude 4.0 Opus (2025-05-14)
 '''
 
-# Model Identifier - the model we're using
-MODEL = 'claude-opus-4-20250514'  # Claude 4.0 Opus
+# Model Identifiers
+MODELS = {
+    'sonnet': 'claude-3-7-sonnet-20250219',
+    'opus': 'claude-opus-4-20250514',
+}
+
+# Price multiplier for Opus relative to Sonnet
+SONNET_TO_OPUS_PRICE_MULTIPLIER = 5
+
+# Model state management - can be: 'sonnet', 'opus', 'opus-for-one-cycle'
+state = 'sonnet'
 
 # HTTP Headers
 REQUIRED_HEADERS = {

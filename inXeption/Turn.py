@@ -53,6 +53,39 @@ class Turn(BaseModel):
         interrupt_check,
     ):
         '''Execute the full turn lifecycle'''
+        # Import anthropic_config to check model state
+        from inXeption import anthropic_config
+        from inXeption.UIObjects import UIBlockType, UIChatType, UIElement
+
+        # Check if model is changing and notify
+        current_model = 'opus' if 'opus' in anthropic_config.state else 'sonnet'
+
+        # Determine if this is a model switch
+        if self.index == 0:  # First turn of interaction
+            # Check previous interactions to see what model was last used
+            prev_model = 'sonnet'  # default
+            if previous_interactions:
+                last_interaction = previous_interactions[-1]
+                if hasattr(last_interaction, 'turns') and last_interaction.turns:
+                    last_turn = last_interaction.turns[-1]
+                    if hasattr(last_turn, 'llm_response') and last_turn.llm_response:
+                        if hasattr(last_turn.llm_response, 'response'):
+                            prev_model = last_turn.llm_response.response.get(
+                                'model_used', 'sonnet'
+                            )
+
+            if current_model != prev_model:
+                # Render model switch notification
+                model_name = (
+                    'Claude 4.0 Opus'
+                    if current_model == 'opus'
+                    else 'Claude 3.7 Sonnet'
+                )
+                msg = f'🔄 Switching to {model_name}'
+                UIElement.singleblock(
+                    '⚙️', UIChatType.SYSTEM, UIBlockType.TEXT, msg
+                ).render(render_fn)
+
         # Create LLM response object
         self.llm_response = LLMResponse(cycle_string=self.cycle_string)
 

@@ -40,6 +40,10 @@ class Interaction(BaseModel):
     stats_ui_element: Optional[Dict[str, Any]] = None
     usage: Optional[Usage] = None
     total_usage: Optional[Usage] = None
+    sonnet_usage: Optional[Usage] = None
+    opus_usage: Optional[Usage] = None
+    total_sonnet_usage: Optional[Usage] = None
+    total_opus_usage: Optional[Usage] = None
     final_battery: float = 100.0  # Default to 100% battery
 
     model_config = {'arbitrary_types_allowed': True}
@@ -106,21 +110,46 @@ class Interaction(BaseModel):
                         self.turns.append(ack_turn)
                     break
 
-            # Calculate usage statistics for this interaction using sum()
-            self.usage = sum(
-                (turn.llm_response.usage for turn in self.turns if turn.llm_response),
-                Usage(),
-            )
+            # Calculate usage statistics for this interaction by model
+            self.sonnet_usage = Usage(model='sonnet')
+            self.opus_usage = Usage(model='opus')
 
-            # Calculate total usage
-            self.total_usage = Usage()
+            for turn in self.turns:
+                if turn.llm_response:
+                    turn_usage = turn.llm_response.usage
+                    if turn_usage.model == 'sonnet':
+                        self.sonnet_usage += turn_usage
+                    elif turn_usage.model == 'opus':
+                        self.opus_usage += turn_usage
+
+            # Combined usage for backward compatibility
+            self.usage = self.sonnet_usage + self.opus_usage
+
+            # Calculate total usage by model
+            self.total_sonnet_usage = Usage(model='sonnet')
+            self.total_opus_usage = Usage(model='opus')
+
             if previous_interactions:
                 # Get the most recent interaction's total usage
                 prev_interaction = Interaction.model_validate(previous_interactions[-1])
-                self.total_usage = deepcopy(prev_interaction.total_usage)
+                if hasattr(prev_interaction, 'total_sonnet_usage'):
+                    self.total_sonnet_usage = deepcopy(
+                        prev_interaction.total_sonnet_usage
+                    )
+                if hasattr(prev_interaction, 'total_opus_usage'):
+                    self.total_opus_usage = deepcopy(prev_interaction.total_opus_usage)
+                # Handle old interactions without per-model tracking
+                elif hasattr(prev_interaction, 'total_usage'):
+                    # Assume all previous usage was sonnet
+                    self.total_sonnet_usage = deepcopy(prev_interaction.total_usage)
+                    self.total_sonnet_usage.model = 'sonnet'
 
-            # Add current usage to total
-            self.total_usage += self.usage
+            # Add current usage to totals
+            self.total_sonnet_usage += self.sonnet_usage
+            self.total_opus_usage += self.opus_usage
+
+            # Combined total for backward compatibility
+            self.total_usage = self.total_sonnet_usage + self.total_opus_usage
 
             # Calculate final battery percentage - INSIDE the lifecycle context using LLMResponse
             interaction_index = len(previous_interactions_objects)

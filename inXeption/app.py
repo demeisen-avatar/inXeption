@@ -27,7 +27,7 @@ from base64 import b64decode
 import streamlit as st
 from Interaction import Interaction
 
-from inXeption.UIObjects import UIBlockType
+from inXeption.UIObjects import UIBlockType, UIChatType, UIElement
 from inXeption.utils.yaml_utils import from_yaml_file
 
 # Custom CSS for styling the UI to match the original
@@ -132,6 +132,50 @@ def interrupt_pending():
 
 async def process_message(user_message):
     '''Process a user message by creating and running an interaction'''
+    from inXeption import anthropic_config
+
+    # Handle model switching commands
+    message_lower = user_message.strip().lower()
+
+    # Split the message to handle both spaces and newlines
+    message_parts = message_lower.split()
+
+    if not message_parts:
+        # Empty message, continue with normal processing
+        pass
+    elif message_parts[0] == '/opus':
+        if len(message_parts) == 1:
+            # Just the command alone - switch default to opus
+            anthropic_config.state = 'opus'
+            UIElement.singleblock(
+                '⚙️',
+                UIChatType.SYSTEM,
+                UIBlockType.TEXT,
+                '✅ Default model set to Claude 4.0 Opus',
+            ).render(render_ui_element)
+            return
+        else:
+            # Command with content - use opus for just this message
+            anthropic_config.state = 'opus-for-one-cycle'
+            # Continue processing with the rest of the message
+            user_message = user_message.strip()[6:].strip()
+    elif message_parts[0] == '/sonnet':
+        if len(message_parts) == 1:
+            # Just the command alone - switch default to sonnet
+            anthropic_config.state = 'sonnet'
+            UIElement.singleblock(
+                '⚙️',
+                UIChatType.SYSTEM,
+                UIBlockType.TEXT,
+                '✅ Default model set to Claude 3.7 Sonnet',
+            ).render(render_ui_element)
+            return
+        else:
+            # Command with content - use sonnet for just this message
+            anthropic_config.state = 'sonnet'
+            # Continue processing with the rest of the message
+            user_message = user_message.strip()[8:].strip()
+
     # Create interaction
     interaction = Interaction(user_message=user_message)
 
