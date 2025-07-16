@@ -117,19 +117,17 @@ check_port_in_use() {
 # 1. ~/.streamlit/config.toml (standard location)
 # 2. ${CWD}/.streamlit/config.toml (project-level location)
 #
-# However, it ALSO looks in XDG-spec folders as a fallback:
-# ~/.config/streamlit/config.toml
+# IMPORTANT: Despite what some documentation might suggest, Streamlit does NOT
+# reliably use XDG-spec folders (e.g., ~/.config/streamlit/config.toml).
+# Testing has confirmed that Streamlit only looks in the standard locations.
 #
-# When running streamlit directly via the 'streamlit' command, it was
-# UNABLE to find the config in the XDG location. A symlink hack fixed
-# this but was clumsy:
-#   ln -sf "/root/.config/streamlit/config.toml" "$SCRIPT_DIR/.streamlit/config.toml"
+# For consistent behavior across both development and production environments,
+# we ensure the config file is in the standard location: ~/.streamlit/config.toml
 #
-# Using 'python -m streamlit' instead properly finds the config in the XDG
-# location without needing the symlink. This is BETTER because:
-# 1. It's the same mechanism that the SYSTEM streamlit uses in entrypoint.sh
-# 2. It creates a more accurate dev environment that mirrors production
-# 3. It eliminates the need for symlink management
+# The configuration settings include:
+# - Dark theme setting
+# - Wide mode layout
+# - Other Streamlit preferences
 # ====================================================================
 
 # Setup streamlit config directory if it doesn't exist

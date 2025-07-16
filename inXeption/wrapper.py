@@ -26,6 +26,9 @@ import streamlit as st
 from streamlit.runtime.app_session import AppSession
 from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
 
+# Set page to wide mode
+st.set_page_config(layout='wide')
+
 # Import utility functions
 from inXeption.utils.misc import create_or_replace_symlink, timestamp
 
@@ -243,7 +246,19 @@ try:
     # Get session ID if available
     session_id_display = get_script_run_ctx().session_id[:6] + '...'  # noqa F821
 
-    # Build container information structure
+    # Get simplified Streamlit theme configuration
+    streamlit_theme_info = ''
+    try:
+        import streamlit.config as stconfig
+
+        # Get theme source
+        theme_source = stconfig.get_where_defined('theme.base')
+        streamlit_theme_info = theme_source
+
+    except Exception as e:
+        streamlit_theme_info = f'Error: {str(e)}'
+
+    # Build simplified container information structure
     container_details = {
         'container': {
             'id': our_container.id[:12],
@@ -261,14 +276,42 @@ try:
             'state': container_info['State']['Status'],
             'network': network_info,
         },
-        'streamlit_session_id': session_id_display,
-        'run_counter': st.session_state.run_counter,
-        'script_path': {
-            'wrapper': os.path.abspath(__file__),
-            'working_dir': os.getcwd(),
-            'script_dir': os.path.dirname(os.path.abspath(__file__)),
+        'streamlit': {
+            'session_id': session_id_display,
+            'run_counter': st.session_state.run_counter,
+            'wrapper.py': os.path.abspath(__file__),
+            'theme_defined_in': streamlit_theme_info,
         },
     }
+
+    # Dump container details to a file in /host/tmp/ for cross-container analysis
+    try:
+        # Create a descriptive filename using container details
+        container_name = container_details['container']['name']
+        hostname = container_details['container']['hostname']
+        mode = container_details['container']['mode']
+        lx_level = container_details['container']['lx_level']
+
+        # Ensure directory exists
+        os.makedirs('/host/tmp', exist_ok=True)
+
+        # Create the output filename with timestamp to prevent overwrites
+        current_time = arrow.now().format('YYYY-MM-DD_HH-mm-ss')
+        output_file = f'/host/tmp/streamlit-config-{container_name}-{hostname}-{mode}-L{lx_level}-{current_time}.yaml'
+
+        # Write the YAML data to file
+        with open(output_file, 'w') as f:
+            yaml.dump(container_details, f, default_flow_style=False)
+
+        logger.info(
+            f'Dumped container details to {output_file}',
+            extra={'run_index': st.session_state.run_counter},
+        )
+    except Exception as e:
+        logger.error(
+            f'Failed to dump container details to file: {e}',
+            extra={'run_index': st.session_state.run_counter},
+        )
 
     # Display as YAML code block
     st.code(yaml.dump(container_details, default_flow_style=False), language='yaml')
