@@ -87,8 +87,12 @@ class ToolResult(BaseModel):
                     },
                 }
             else:
-                meta = f'{block.meta}\n' if block.meta else ''
-                return {'type': 'text', 'text': meta + block.content}
+                # Add explicit block delimiters with block type and meta information
+                block_type = block.type
+                meta_info = f', meta={block.meta}' if block.meta else ''
+                header = f'\n[text-block-start type={block_type}{meta_info}]\n'
+                footer = '\n[text-block-end]\n'
+                return {'type': 'text', 'text': header + block.content + footer}
 
         # Convert all blocks from all elements to LLM blocks
         return [
