@@ -322,6 +322,9 @@ class _BashSession:
             self._process.stdout._buffer.clear()
             self._process.stderr._buffer.clear()
 
+            # Mark session as not started so next command creates a fresh process
+            self._started = False
+
             # Return a ToolResult instance with the UI element
             return ToolResult.from_ui_element('📺', 'tool', blocks)
 
