@@ -334,9 +334,6 @@ class BashTool(BaseTool):
     Tool for executing bash commands with timeout and interruption support.
     '''
 
-    # Class variable for instance tracking
-    _instance = None
-
     yaml = f'''
         name: bash_tool
         description: |
@@ -369,9 +366,6 @@ class BashTool(BaseTool):
     def __init__(self):
         super().__init__()
         self._session = None
-
-        # Store this instance as the class instance for future lookups
-        BashTool._instance = self
 
     async def __call__(
         self,

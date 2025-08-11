@@ -77,10 +77,14 @@ class _PythonSession:
             logger.error(f'Error during clean exit: {e}')
 
         try:
-            # Ensure process is terminated
-            if hasattr(self._repl, 'child') and self._repl.child.isalive():
-                logger.debug('Python still alive, terminating')
-                self._repl.child.terminate(force=True)
+            # Ensure process is terminated and file descriptor is closed
+            if hasattr(self._repl, 'child') and self._repl.child:
+                if self._repl.child.isalive():
+                    logger.debug('Python still alive, terminating')
+                    self._repl.child.terminate(force=True)
+                # Always close the file descriptor explicitly
+                logger.debug('Closing pexpect file descriptor')
+                self._repl.child.close(force=True)
         except Exception as e:
             logger.error(f'Error terminating Python session: {e}')
 
@@ -200,9 +204,6 @@ class PythonTool(BaseTool):
     Tool for executing Python code with state persistence, timeout and interruption support.
     '''
 
-    # Class variable for instance tracking
-    _instance = None
-
     yaml = '''
         name: python_tool
         description: |
@@ -248,9 +249,6 @@ class PythonTool(BaseTool):
     def __init__(self):
         super().__init__()
         self._session = None
-
-        # Store this instance as the class instance for future lookups
-        PythonTool._instance = self
 
         # Initialize startup code to add host directory to sys.path
         self._startup_code = '''
