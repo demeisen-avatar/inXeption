@@ -10,7 +10,8 @@ Compatible with: Claude 4.0 Opus (2025-05-14)
 
 # Model Identifiers
 MODELS = {
-    'sonnet': 'claude-3-7-sonnet-20250219',
+    # 'sonnet': 'claude-3-7-sonnet-20250219',
+    'sonnet': 'claude-sonnet-4-20250514',
     'opus': 'claude-opus-4-20250514',
 }
 
