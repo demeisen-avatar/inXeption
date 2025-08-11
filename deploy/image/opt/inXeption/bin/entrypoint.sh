@@ -50,6 +50,19 @@ if [ ! -L /root/.gemini ]; then
   echo "Set up Gemini CLI persistent authentication"
 fi
 
+# Set up gcloud persistent authentication
+if [ ! -L /root/.config/gcloud ]; then
+  # Remove any existing gcloud directory
+  rm -rf /root/.config/gcloud
+  # Create parent directory if needed
+  mkdir -p /root/.config
+  # Create symbolic link to persistent storage
+  ln -sf /host/.persist/gcloud-config /root/.config/gcloud
+  echo "Set up gcloud persistent authentication"
+fi
+
+# Google Cloud SDK is installed via apt and available in standard PATH
+
 # Source and export all variables from .ports
 set -a
 source /host/.ports || exit 1
