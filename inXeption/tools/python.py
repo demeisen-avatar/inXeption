@@ -4,6 +4,9 @@ Python tool implementation for executing Python code with state persistence.
 
 import asyncio
 import logging
+import os
+import subprocess
+from pathlib import Path
 
 from pexpect import exceptions, replwrap
 
@@ -14,6 +17,93 @@ from .ToolResult import ToolResult
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)
+
+
+def log_fd_state(context):
+    '''Log current file descriptor usage and range for debugging FD leaks'''
+    try:
+        # Get current process FD count and range
+        fd_dir = Path('/proc/self/fd')
+        if fd_dir.exists():
+            fds = list(fd_dir.iterdir())
+            fd_count = len(fds)
+            fd_numbers = [int(f.name) for f in fds if f.name.isdigit()]
+            max_fd = max(fd_numbers) if fd_numbers else 0
+            min_fd = min(fd_numbers) if fd_numbers else 0
+        else:
+            fd_count = max_fd = min_fd = -1
+
+        # Get system FD limit
+        try:
+            import resource
+
+            fd_limit = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
+        except Exception:
+            fd_limit = -1
+
+        logger.error(
+            f'FD_STATE[{context}]: count={fd_count}, range={min_fd}-{max_fd}, limit={fd_limit}'
+        )
+    except Exception as e:
+        logger.error(f'FD_STATE[{context}]: Error getting FD state: {e}')
+
+
+def log_process_state(context):
+    '''Log process tree state for debugging zombie processes'''
+    try:
+        current_pid = os.getpid()
+
+        # Count child processes and zombies
+        try:
+            result = subprocess.run(
+                ['ps', '-eo', 'pid,ppid,state'],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            lines = result.stdout.strip().split('\n')[1:]  # Skip header
+            child_count = 0
+            zombie_count = 0
+
+            for line in lines:
+                parts = line.split()
+                if len(parts) >= 3:
+                    pid, ppid, state = parts[0], parts[1], parts[2]  # noqa: F841
+                    try:
+                        if int(ppid) == current_pid:
+                            child_count += 1
+                            if state == 'Z':
+                                zombie_count += 1
+                    except ValueError:
+                        continue
+        except Exception:
+            child_count = zombie_count = -1
+
+        logger.error(
+            f'PROCESS_STATE[{context}]: pid={current_pid}, children={child_count}, zombies={zombie_count}'
+        )
+    except Exception as e:
+        logger.error(f'PROCESS_STATE[{context}]: Error getting process state: {e}')
+
+
+def log_pexpect_state(context, child):
+    '''Log pexpect child process state for debugging'''
+    try:
+        if child is None:
+            logger.error(f'PEXPECT_STATE[{context}]: child=None')
+            return
+
+        child_pid = getattr(child, 'pid', 'unknown')
+        child_fd = getattr(child, 'child_fd', 'unknown')
+        is_alive = child.isalive() if hasattr(child, 'isalive') else 'unknown'
+        is_closed = getattr(child, 'closed', 'unknown')
+
+        logger.error(
+            f'PEXPECT_STATE[{context}]: pid={child_pid}, fd={child_fd}, alive={is_alive}, closed={is_closed}'
+        )
+    except Exception as e:
+        logger.error(f'PEXPECT_STATE[{context}]: Error getting pexpect state: {e}')
+
 
 PYTHON_DEFAULT_TIMEOUT_S = 60
 
@@ -59,6 +149,10 @@ class _PythonSession:
             self._started = True
             logger.debug('PythonSession started successfully')
         except Exception as e:
+            # Log diagnostic information when start fails
+            log_fd_state('START_ERROR')
+            log_process_state('START_ERROR')
+            log_pexpect_state('START_ERROR', getattr(self, '_child', None))
             logger.error(f'Error starting Python session: {e}')
             raise ToolError(f'Failed to start Python session: {str(e)}') from e
 
@@ -79,14 +173,29 @@ class _PythonSession:
         try:
             # Ensure process is terminated and file descriptor is closed
             if hasattr(self._repl, 'child') and self._repl.child:
+                # Log state before cleanup
+                log_fd_state('PRE_CLEANUP')
+                log_pexpect_state('PRE_CLEANUP', self._repl.child)
+
                 if self._repl.child.isalive():
-                    logger.debug('Python still alive, terminating')
+                    logger.error('Python still alive, terminating')
                     self._repl.child.terminate(force=True)
                 # Always close the file descriptor explicitly
-                logger.debug('Closing pexpect file descriptor')
+                logger.error('Closing pexpect file descriptor')
                 self._repl.child.close(force=True)
+
+                # Log state after cleanup
+                log_fd_state('POST_CLEANUP')
+                log_pexpect_state('POST_CLEANUP', self._repl.child)
         except Exception as e:
             logger.error(f'Error terminating Python session: {e}')
+            # Log diagnostic information when cleanup fails
+            log_fd_state('CLEANUP_ERROR')
+            log_process_state('CLEANUP_ERROR')
+            log_pexpect_state(
+                'CLEANUP_ERROR',
+                getattr(self._repl, 'child', None) if hasattr(self, '_repl') else None,
+            )
 
         self._started = False
         self._repl = None
