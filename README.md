@@ -4,6 +4,7 @@ Crafted by π, released 28 April 2025
 
 A framework for human-AI collaborative software development with recursive self-improvement capabilities.
 
+🙏 A big thankyou to [Naptha AI](https://naptha.ai/) for sponsoring this work. They provided funding and an Anthropic API key. Without this, this project would likely not exist! 👋 Mark & Richard, you are appreciated! 🚀
 
 ## Vision
 
