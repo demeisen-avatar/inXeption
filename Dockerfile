@@ -95,6 +95,9 @@ RUN apt-get update && \
     bat \
     bc \
     cargo \
+    # Simple Sync requirements
+    ruby \
+    rsync \
     # Audio support
     pulseaudio \
     alsa-utils \
@@ -125,6 +128,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g npm@latest && \
     npm install -g @google/gemini-cli
+
+# --- SIMPLE SYNC PERSISTENCE ---
+# No build-time persistence setup needed - handled by entrypoint.sh at runtime
 
 # Install Google Cloud SDK
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates gnupg && \

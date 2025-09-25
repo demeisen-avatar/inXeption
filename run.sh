@@ -155,6 +155,7 @@ if [ -z "$PROJROOT" ]; then
     PROJROOT="$(pwd)"
 fi
 
+
 # Check for audio support
 AUDIO_PARAMS=""
 if [ "$(uname)" = "Darwin" ]; then
@@ -209,10 +210,9 @@ if [ "$LX" = "0" ]; then
         -e EXTERNAL_IP="$EXTERNAL_IP" \
         --hostname="L$((LX + 1))" \
         ${AUDIO_PARAMS} \
-        -v /etc/timezone:/etc/timezone:ro \
-        -v /etc/localtime:/etc/localtime:ro \
         -v "$PARENT_DIR":/parent \
         -v "$PROJROOT":/host \
+        -v "$PROJROOT/.persist":/.persist \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -p 0.0.0.0:${PORT_SSH_EXTERNAL}:${PORT_SSH_INTERNAL} \
         -p 0.0.0.0:${PORT_VNC_EXTERNAL}:${PORT_VNC_INTERNAL} \
@@ -237,9 +237,8 @@ else
         -e CONTAINER_NAME="$CONTAINER_NAME" \
         -e EXTERNAL_IP="$EXTERNAL_IP" \
         --hostname="L$((LX + 1))" \
-        -v /etc/timezone:/etc/timezone:ro \
-        -v /etc/localtime:/etc/localtime:ro \
         -v "$PROJROOT":/host \
+        -v "$PROJROOT/.persist":/.persist \
         -v /var/run/docker.sock:/var/run/docker.sock \
         --name "$CONTAINER_NAME" \
         -it "$IMAGE_NAME")
@@ -284,6 +283,24 @@ stop_container_and_cleanup() {
         log_with_timestamp "✅ Stopped"
     else
         log_with_timestamp "⚠️  Unexpected output: $result"
+    fi
+
+    # Wait for shutdown log and display it
+    SHUTDOWN_LOG="$PROJROOT/.persist/shutdown.log"
+    log_with_timestamp "Waiting for shutdown report..."
+    for i in {1..20}; do
+        if [ -f "$SHUTDOWN_LOG" ]; then
+            log_with_timestamp "📄 Shutdown report:"
+            while IFS= read -r line; do
+                log_with_timestamp "🐋 $line"
+            done < "$SHUTDOWN_LOG"
+            break
+        fi
+        sleep 0.5
+    done
+
+    if [ ! -f "$SHUTDOWN_LOG" ]; then
+        log_with_timestamp "⚠️  Shutdown report not found at $SHUTDOWN_LOG"
     fi
 
     log_with_timestamp "Cleaning up background processes..."

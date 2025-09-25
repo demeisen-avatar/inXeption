@@ -1,6 +1,50 @@
 #!/bin/bash
 set -e
 
+# ==============================================================================
+# "Simple Sync" Persistence Architecture
+# ==============================================================================
+
+# --- Define Core Paths ---
+PERSIST_MAPPED_DIR="/.persist"
+SYNC_SCRIPT="/opt/inXeption/bin/sync.sh"
+SHUTDOWN_LOG="$PERSIST_MAPPED_DIR/shutdown.log"
+SHUTDOWN_LOG_TMP="$PERSIST_MAPPED_DIR/shutdown.log.tmp"
+
+# --- Shutdown Handler (TRAP) ---
+# This function is registered to run when the container receives a stop signal.
+function on_shutdown() {
+    echo "Shutdown signal received. Syncing state to persistent storage..."
+    if [ -x "$SYNC_SCRIPT" ]; then
+        "$SYNC_SCRIPT" --save > "$SHUTDOWN_LOG_TMP" 2>&1
+    else
+        echo "⚠️ Sync script not found or not executable at $SYNC_SCRIPT." > "$SHUTDOWN_LOG_TMP"
+    fi
+    echo "✅ Shutdown handler completed." >> "$SHUTDOWN_LOG_TMP"
+
+    # Atomic rename to signal completion
+    mv "$SHUTDOWN_LOG_TMP" "$SHUTDOWN_LOG"
+}
+trap 'on_shutdown' SIGTERM SIGINT
+
+
+# --- Main Startup Logic ---
+
+# Remove any existing shutdown logs from previous run
+rm -f "$SHUTDOWN_LOG" "$SHUTDOWN_LOG_TMP"
+
+echo "Container starting up. Syncing state from persistent storage..."
+if [ -x "$SYNC_SCRIPT" ]; then
+    "$SYNC_SCRIPT" --load
+else
+    echo "Warning: Sync script not found or not executable at $SYNC_SCRIPT. Skipping sync-in."
+fi
+echo "✅ Persistence sync-in complete."
+
+# ==============================================================================
+# Original startup services follow
+# ==============================================================================
+
 export LOG_BASE="/host/.logs/prod/${CONTAINER_NAME}"
 mkdir -p "$LOG_BASE"
 echo "LOG_BASE=$LOG_BASE"
@@ -41,25 +85,7 @@ setup_git
 service ssh start
 echo "SSH server started on port 22"
 
-# Set up Gemini CLI persistent authentication
-if [ ! -L /root/.gemini ]; then
-  # Remove any existing .gemini directory
-  rm -rf /root/.gemini
-  # Create symbolic link to persistent storage
-  ln -sf /host/.persist/.gemini /root/.gemini
-  echo "Set up Gemini CLI persistent authentication"
-fi
-
-# Set up gcloud persistent authentication
-if [ ! -L /root/.config/gcloud ]; then
-  # Remove any existing gcloud directory
-  rm -rf /root/.config/gcloud
-  # Create parent directory if needed
-  mkdir -p /root/.config
-  # Create symbolic link to persistent storage
-  ln -sf /host/.persist/gcloud-config /root/.config/gcloud
-  echo "Set up gcloud persistent authentication"
-fi
+# Persistent authentication is now handled by Simple Sync
 
 # Google Cloud SDK is installed via apt and available in standard PATH
 
@@ -121,5 +147,6 @@ echo "➡️  Open $ACCESS_URL in your browser to begin"
 echo "Suggested first message:"
 echo "Execute /host/wake.sh and proceed with its guidance."
 
-# Keep the container running
-tail -f /dev/null
+# Keep the container running with proper signal handling
+sleep infinity &
+wait $!
