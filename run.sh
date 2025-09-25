@@ -216,6 +216,7 @@ if [ "$LX" = "0" ]; then
         -v "$PROJROOT":/host \
         -v "$PROJROOT/.persist":/.persist \
         -v /var/run/docker.sock:/var/run/docker.sock \
+        -p 0.0.0.0:${PORT_CCFLARE_EXTERNAL}:${PORT_CCFLARE_INTERNAL} \
         -p 0.0.0.0:${PORT_SSH_EXTERNAL}:${PORT_SSH_INTERNAL} \
         -p 0.0.0.0:${PORT_VNC_EXTERNAL}:${PORT_VNC_INTERNAL} \
         -p 0.0.0.0:${PORT_STREAMLIT_EXTERNAL}:${PORT_STREAMLIT_INTERNAL} \

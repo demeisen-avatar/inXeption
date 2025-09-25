@@ -1,0 +1,57 @@
+diff --git a/apps/tui/package.json b/apps/tui/package.json
+index 5400944..61c0fde 100644
+--- a/apps/tui/package.json
++++ b/apps/tui/package.json
+@@ -8,7 +8,7 @@
+ 	"type": "module",
+ 	"scripts": {
+ 		"dev": "bun run src/main.ts",
+-		"build": "bun build src/main.ts --compile --outfile dist/ccflare --target=bun",
++		"build": "bun build src/main.ts ../../packages/proxy/src/post-processor.worker.ts --compile --outfile dist/ccflare --target=bun",
+ 		"prepublishOnly": "bun run build",
+ 		"postpublish": "chmod +x dist/ccflare"
+ 	},
+diff --git a/packages/proxy/src/proxy.ts b/packages/proxy/src/proxy.ts
+index 4bfb75d..b30ca79 100644
+--- a/packages/proxy/src/proxy.ts
++++ b/packages/proxy/src/proxy.ts
+@@ -29,27 +29,26 @@ let usageWorkerInstance: Worker | null = null;
+  */
+ export function getUsageWorker(): Worker {
+ 	if (!usageWorkerInstance) {
+-		usageWorkerInstance = new Worker(
+-			new URL("./post-processor.worker.ts", import.meta.url).href,
+-			{ smol: true },
+-		);
+-		// Bun extends Worker with unref method
+-		if (
+-			"unref" in usageWorkerInstance &&
+-			typeof usageWorkerInstance.unref === "function"
+-		) {
+-			usageWorkerInstance.unref(); // Don't keep process alive
+-		}
++		// In a compiled binary, import.meta.url is not relative to the source tree.
++		// We must provide a path relative to the project root, which Bun
++		// can resolve at compile time.
++		const workerPath = "packages/proxy/src/post-processor.worker.ts";
+
+-		// Listen for summary messages from worker
++		usageWorkerInstance = new Worker(workerPath, { smol: true });
++
++		// Restore the original onmessage handler to process data from the worker
+ 		usageWorkerInstance.onmessage = (ev) => {
+-			const data = ev.data as OutgoingWorkerMessage;
++			const data = ev.data as any; // Cast as any to avoid type conflicts in this scope
+ 			if (data.type === "summary") {
+ 				requestEvents.emit("event", { type: "summary", payload: data.summary });
+ 			} else if (data.type === "payload") {
+ 				requestEvents.emit("event", { type: "payload", payload: data.payload });
+ 			}
+ 		};
++
++		// DO NOT call unref(). This was the likely cause of the original
++		// "Worker has been terminated" error. The worker needs to stay
++		// alive to process background tasks.
+ 	}
+ 	return usageWorkerInstance;
+ }

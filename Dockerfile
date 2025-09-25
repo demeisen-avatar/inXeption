@@ -129,6 +129,43 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     npm install -g npm@latest && \
     npm install -g @google/gemini-cli
 
+# Install Bun (required for building ccflare and running tools)
+RUN apt-get update && apt-get install -y unzip
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
+
+# Install yq using the recommended direct binary download method for Docker
+RUN wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
+    chmod +x /usr/local/bin/yq
+
+# Install the OFFICIAL claude-code and ccstatusline using Bun
+RUN bun install -g @anthropic-ai/claude-code
+RUN bun install -g ccstatusline@latest
+
+# Install ccflare by cloning and building from source, then symlinking the executable
+# RUN git clone https://github.com/snipeship/ccflare.git /opt/ccflare && \
+#     cd /opt/ccflare && \
+#     bun install && \
+#     bun run build && \
+#     ln -s /opt/ccflare/ccflare /usr/local/bin/ccflare
+
+# Copy the patch file into the build stage
+COPY ccflare.patch /tmp/ccflare.patch
+
+# Install ccflare by cloning a specific commit, applying a patch, and building from source
+# - Pin to a specific, known-good commit to ensure the patch applies cleanly
+# - Apply our fix from the copied patch file
+# - Install dependencies and build the patched source
+# - Symlink the final executable to the user's PATH
+# ref: https://github.com/snipeship/ccflare/issues/40
+RUN git clone https://github.com/snipeship/ccflare.git /opt/ccflare && \
+    cd /opt/ccflare && \
+    git checkout 688921203f5035e09740ad4f8208d222122d9ea9 && \
+    git apply /tmp/ccflare.patch && \
+    bun install && \
+    bun run build && \
+    ln -s /opt/ccflare/apps/tui/dist/ccflare /usr/local/bin/ccflare
+
 # --- SIMPLE SYNC PERSISTENCE ---
 # No build-time persistence setup needed - handled by entrypoint.sh at runtime
 
