@@ -210,6 +210,8 @@ if [ "$LX" = "0" ]; then
         -e EXTERNAL_IP="$EXTERNAL_IP" \
         --hostname="L$((LX + 1))" \
         ${AUDIO_PARAMS} \
+        -v /etc/timezone:/etc/timezone:ro \
+        -v /etc/localtime:/etc/localtime:ro \
         -v "$PARENT_DIR":/parent \
         -v "$PROJROOT":/host \
         -v "$PROJROOT/.persist":/.persist \
@@ -237,6 +239,8 @@ else
         -e CONTAINER_NAME="$CONTAINER_NAME" \
         -e EXTERNAL_IP="$EXTERNAL_IP" \
         --hostname="L$((LX + 1))" \
+        -v /etc/timezone:/etc/timezone:ro \
+        -v /etc/localtime:/etc/localtime:ro \
         -v "$PROJROOT":/host \
         -v "$PROJROOT/.persist":/.persist \
         -v /var/run/docker.sock:/var/run/docker.sock \
